@@ -1,0 +1,163 @@
+---
+title: "Case Study"
+author: "Mari Sanders"
+date: "2024-10-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(p8105.datasets)
+library(leaflet)
+```
+
+
+```{r}
+data("nyc_airbnb")
+
+nyc_airbnb %>% view()
+```
+
+
+## Questions about Data
+
+* Where are max and min airbnb prices? 
+
+  * What are average prices? 
+  
+  * What factors affect prices? 
+
+* Where are prices going up and down overtime? 
+
+* What's the relationship bewteen number of reviews and average reviews? 
+
+* Does room type affect availability? 
+
+* What's the location of the unit? 
+
+  * What areas are popular? 
+  
+  * How do we measure popularity? Population = number of units? Average Price?
+  
+* Are there repeat hosts?
+  
+  * If there are, what does that mean?
+  
+
+```{r}
+nyc_airbnb %>% janitor::clean_names() %>%
+  select(price, room_type, neighbourhood) %>%  
+  ggplot(aes(x = room_type, y = price)) + 
+  geom_boxplot()
+```
+
+```{r}
+nyc_airbnb %>% 
+  janitor::clean_names() %>% pull(price) %>% 
+  mean()
+```
+
+```{r}
+nyc_airbnb %>% 
+  janitor::clean_names() %>% pull(price) %>% 
+  min()
+```
+
+```{r}
+nyc_airbnb %>% 
+  janitor::clean_names() %>% pull(price) %>% 
+  max()
+```
+
+```{r}
+summary(nyc_airbnb)
+```
+
+```{r}
+nyc_airbnb %>%  
+  janitor::clean_names() %>% 
+  select(price, room_type, neighbourhood) 
+```
+
+
+```{r}
+ggplot(data = nyc_airbnb, aes(x = room_type, y = availability_365)) + 
+  geom_violin()
+```
+
+
+```{r}
+ggplot(data = nyc_airbnb, aes(x = number_of_reviews, y = review_scores_location, na.rm = TRUE)) + geom_point()
+```
+
+```{r}
+nyc_airbnb %>% 
+  filter(calculated_host_listings_count > 34) %>%  view()
+```
+
+```{r}
+nyc_airbnb %>%  
+  group_by(neighbourhood_group) %>% 
+  summarise(total_reviews = sum(number_of_reviews, na.rm = TRUE)) %>% 
+  arrange(desc(total_reviews))
+```
+
+```{r}
+nyc_airbnb %>%  
+  group_by(neighbourhood_group, room_type) %>% 
+  summarize(mean_price = mean(price)) %>% 
+  pivot_wider(
+    names_from = room_type, 
+    values_from = mean_price
+  ) 
+```
+
+```{r}
+nyc_airbnb %>% 
+  ggplot(aes(x = review_scores_location, y = price)) +
+  geom_point()
+```
+
+```{r}
+nyc_airbnb %>% 
+  filter(neighbourhood_group == "Manhattan", price < 1000) %>%  
+  ggplot(aes(x = lat, y = long, color = price)) +
+  geom_point(alpha = 0.1)
+```
+
+```{r}
+nyc_airbnb %>% 
+  filter(neighbourhood_group == "Manhattan", price < 1000, room_type == "Entire home/apt") %>% 
+  group_by(neighbourhood) %>% 
+  summarize(mean_price = mean(price)) %>% arrange(desc(mean_price))
+```
+
+```{r}
+nyc_airbnb %>% 
+  filter(neighbourhood_group == "Manhattan", price < 1000, room_type == "Entire home/apt") %>% 
+  mutate(neighbourhood = fct_reorder(neighbourhood, price)) %>% 
+  ggplot(aes(x = neighbourhood, y = price)) + 
+  geom_violin() + 
+  theme(axis.text = element_text(angle = 45, vjust = 1, hjust = 1))
+```
+
+**Go Back to Map**
+
+```{r}
+nyc_airbnb %>% 
+  filter(neighbourhood_group == "Manhattan", price < 1000) %>%  
+  ggplot(aes(x = lat, y = long, color = price)) +
+  geom_point(alpha = 0.1)
+```
+
+```{r}
+pal <- colorNumeric(c("red", "green", "blue"), 1:1000)
+nyc_airbnb %>% 
+  filter(neighbourhood_group == "Manhattan", price < 1000) %>% 
+  leaflet() %>% 
+  addProviderTiles(providers$CartoDB.Positron) %>% 
+  addCircleMarkers(~lat, ~long, color = ~ pal(price), radius = 2) 
+```
+
+
